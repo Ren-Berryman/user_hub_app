@@ -24,7 +24,7 @@ class AppContext
     SEED_SAMPLE_DATA = true   # set to false to start with no demo users/posts
     DAY              = 24 * 60 * 60
 
-    attr_reader :root, :users_hash, :all_posts, :current_user
+    attr_reader :root, :users_hash, :all_posts, :current_user, :deleted_account_count
 
     def initialize
         @root = TkRoot.new
@@ -37,6 +37,7 @@ class AppContext
         @current_frame = nil
         @next_user_id  = 1
         @next_post_id  = FIRST_POST_ID
+        @deleted_account_count = 0
 
         seed_admin
         seed_sample_data if SEED_SAMPLE_DATA
@@ -116,6 +117,7 @@ class AppContext
     removed_post_count = user[:posts].length
     @all_posts.reject! { |p| p[:author] == user[:username] }
     @users_hash.delete(user[:username])
+    @deleted_account_count += 1
     [true, "Deleted \"#{user[:username]}\" and #{removed_post_count} post(s)."]
     end
 
