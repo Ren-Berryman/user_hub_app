@@ -158,6 +158,10 @@ class AppContext
         posts.sum { |p| p[:attachments].length }
     end
 
+    def total_deleted_accounts()
+        deleted_account_count
+    end
+
     #Posts and attachments
 
     def create_post(title, content)
