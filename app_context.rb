@@ -11,7 +11,7 @@ require_relative 'helpers/validator'
 #     created_at: Time, updated_at: Time, attachments: [Attachment, ...] }
 #
 # Attachment:
-#   { name:, type:, size: Integer (KB) }
+#   { name:, type:, size: Integer (KB), file_path: Text }
 #
 # Dates are Time objects; format them in the view, e.g.
 #   time.strftime('%m/%d/%Y')          # => "08/01/2026"
@@ -185,11 +185,11 @@ class AppContext
         [true, 'Post updated.']
     }
 
-    def add_attachment(post, name:, type:, size:)
-        valid, msg = Validator.validate_attachment(name, type, size, post[:attachments].length)
+    def add_attachment(post, name:, type:, size:, path:)
+        valid, msg = Validator.validate_attachment(name, type, size, path, post[:attachments].length)
         return [false, msg] unless valid
 
-        post[:attachments] << { name: name, type: type, size: size.to_i }
+        post[:attachments] << { name: name, type: type, size: size.to_i, path: path }
         touch(post)
         [true, 'Attachment added successfully!']
     end
