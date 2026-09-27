@@ -158,8 +158,9 @@ class AppContext
         posts.sum { |p| p[:attachments].length }
     end
 
+    # returns total # of accounts deleted in userhub
     def total_deleted_accounts()
-        deleted_account_count
+        @deleted_account_count
     end
 
     #Posts and attachments
@@ -181,7 +182,7 @@ class AppContext
     end
 
     #updates information in user's post
-    def update_post(post){
+    def update_post(post)
         valid, msg = Validator.validate_post(title, content) # calls to validate post
         return [false, msg] unless valid
         #if valid, post can be updated with title and content
@@ -189,7 +190,7 @@ class AppContext
         post[:content] = content
         touch(post)
         [true, 'Post updated.']
-    }
+    end
 
     def add_attachment(post, name:, type:, size:, path:)
         valid, msg = Validator.validate_attachment(name, type, size, path, post[:attachments].length)
@@ -208,6 +209,8 @@ class AppContext
         [true, "Removed attachment \"#{removed[:name]}\"."]
     end
 
+    # Search features
+    
     private
 
     #record builder
