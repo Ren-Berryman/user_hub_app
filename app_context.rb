@@ -98,6 +98,25 @@ class AppContext
         [true, 'Registration successful. Please log in.']
     end
 
+    #updates user info
+    def update_profile(username:, email:, street:, city:, state:, zip:)
+        user = @current_user
+        return [false, 'You must be logged in to update your profile.'] unless user
+
+        valid, msg = Validator.validate_profile(username, email, street, city, state, zip)
+        return [false, msg] unless valid
+
+        other = @users_hash[username]
+        return [false, 'Username already taken.'] if other && !other.equal?(user)
+        other = find_user(email)
+        return [false, 'Email already registered.'] if other && !other.equal?(user)
+
+        rename_user(user, username) unless username == user[:username]
+        user[:email]   = email
+        user[:address] = { street: street, city: city, state: state, zip: zip }
+        [true, 'Profile updated successfully!']
+    end
+
     def find_user(login)
         return nil if login.to_s.strip.empty?
 
@@ -162,6 +181,17 @@ class AppContext
         [true, "Removed attachment \"#{removed[:name]}\"."]
     end
 
+    #updates post and title after validation
+    def update_post(post, title, content)
+        valid, msg = Validator.validate_post(title, content)
+        return [false, msg] unless valid
+
+        post[:title]   = title
+        post[:content] = content
+        touch(post)
+        [true, 'Post updated successfully!']
+    end
+
     private
 
     #record builder
@@ -193,6 +223,13 @@ class AppContext
         user[:posts] << post
         @all_posts << post
         post
+    end
+
+    def rename_user(user, new_name)
+        @users_hash.delete(user[:username])
+        user[:posts].each { |post| post[:author] = new_name }
+        user[:username] = new_name
+        @users_hash[new_name] = user
     end
 
     #marks a post as updated now

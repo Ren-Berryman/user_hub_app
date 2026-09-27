@@ -35,6 +35,7 @@ class UserDashboardView < TkFrame
         TkLabel.new(header, text: "Welcome, #{@user[:username]}!", font: HEADER_FONT).pack(side: 'left', padx: 10)
         @post_count_label = TkLabel.new(header).pack(side: 'left', padx: 10)
         TkButton.new(header, text: 'Logout', command: proc { @app.logout }).pack(side: 'right', padx: 10)
+        TkButton.new(header, text: 'My Profile', command: proc { @app.switch_to(UserProfileView) }).pack(side: 'right', padx: 5)
     end
 
     def build_post_list
@@ -46,6 +47,7 @@ class UserDashboardView < TkFrame
 
         row = TkFrame.new(self).pack(pady: 5)
         TkButton.new(row, text: 'Create New Post',      command: proc { show_post_form }).pack(side: 'left', padx: 5)
+        TkButton.new(row, text: 'Edit Selected Post',   command: proc { edit_selected_post }).pack(side: 'left', padx: 5)
         TkButton.new(row, text: 'Delete Selected Post', command: proc { delete_selected_post }).pack(side: 'left', padx: 5)
     end
 
@@ -115,9 +117,10 @@ end
 
 #actions
 
-def show_post_form
+# Shared form for creating a new post or editing an existing one.
+def show_post_form(post_to_edit = nil)
     top = TkToplevel.new(self)
-    top.title('New Post')
+    top.title(post_to_edit ? 'Edit Post' : 'New Post')
 
     TkLabel.new(top, text: 'Title:').pack(anchor: 'w', padx: 10)
     title_entry = TkEntry.new(top, width: 40).pack(padx: 10)
@@ -125,11 +128,21 @@ def show_post_form
     content_text = TkText.new(top, width: 40, height: 8, wrap: 'word').pack(padx: 10)
     err_label = TkLabel.new(top, foreground: 'red').pack
 
+    if post_to_edit
+        title_entry.value = post_to_edit[:title]
+        content_text.insert('1.0', post_to_edit[:content])
+    end
+
     save = proc do
-        ok, msg = @app.create_post(title_entry.value.strip, content_text.get('1.0', 'end').strip)
+        title   = title_entry.value.strip
+        content = content_text.get('1.0', 'end').strip
+        ok, msg = post_to_edit ? @app.update_post(post_to_edit, title, content) : @app.create_post(title, content)
+
         if ok
             top.destroy
-            refresh_posts(select: @user[:posts].length - 1)
+            # Re-select the edited post by identity (the selection may have changed while the dialog was open)
+            idx = post_to_edit ? @user[:posts].index { |p| p.equal?(post_to_edit) } : @user[:posts].length - 1
+            refresh_posts(select: idx)
             show_status(msg, true)
         else
             err_label.text = msg
@@ -138,6 +151,13 @@ def show_post_form
 
     TkButton.new(top, text: 'Save', command: save).pack(pady: 5)
     title_entry.focus
+end
+
+def edit_selected_post
+    post = selected_post
+    return show_status('Please select a post to edit.', false) unless post
+
+    show_post_form(post)
 end
 
 def delete_selected_post

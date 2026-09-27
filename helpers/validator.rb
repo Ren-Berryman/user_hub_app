@@ -1,12 +1,33 @@
 module Validator
     EMAIL_PATTERN = /\A[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\z/
 
-            #user Input Validation
-            def self.validate_user(username, email, password)
+# Username + Email checks (shared by registration and profile updates)
+def self.validate_account(username, email)
+    return [false, "Username must be at least 3 characters."] if username.nil? || username.strip.length < 3
+    return [false, "Invalid email format (e.g., user@email.com)."] if email.nil? || !(email =~ EMAIL_PATTERN)
+    [true, "Valid"]
+end
+#user Input Validation
+def self.validate_user(username, email, password)
     return [false, "Username must be at least 3 characters."] if username.nil? || username.strip.length < 3
     return [false, "Invalid email format (e.g., user@email.com)."] if email.nil? || !(email =~ EMAIL_PATTERN)
     return [false, "Password must be at least 6 characters."] if password.nil? || password.length < 6
     [true, "Valid"]
+end
+
+# User Input Validation (registration)
+def self.validate_user(username, email, password)
+    valid, msg = validate_account(username, email)
+    return [valid, msg] unless valid
+    return [false, "Password must be at least 6 characters."] if password.nil? || password.length < 6
+    [true, "Valid"]
+end
+
+# Profile Update Validation (no password on the profile form)
+def self.validate_profile(username, email, street, city, state, zip_code)
+    valid, msg = validate_account(username, email)
+    return [valid, msg] unless valid
+    validate_address(street, city, state, zip_code)
 end
 
 #address Input Validation
