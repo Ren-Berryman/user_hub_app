@@ -18,12 +18,14 @@ class LoginRegisterView < TkFrame
         [:zip,    'Zip Code:']
     ].freeze
 
+    # sets up the view and shows the login screen
     def initialize(parent, app)
         super(parent)
         @app = app
         build_login_ui
     end
 
+    # builds the login screen
     def build_login_ui(notice = nil)
         clear_frame
         title('UserHub System Login')
@@ -40,6 +42,7 @@ class LoginRegisterView < TkFrame
         @username_entry.focus
     end
 
+    # builds the registration form
     def build_register_ui
         clear_frame
         title('User & Address Registration')
@@ -58,33 +61,38 @@ class LoginRegisterView < TkFrame
 
     private
 
-    #helpers
+    # widget helpers
 
+    # adds a title label
     def title(text)
         TkLabel.new(self, text: text, font: TITLE_FONT).pack(pady: 10)
     end
 
+    # adds a label and text entry
     def labeled_entry(label, secret: false, pady: 5)
         TkLabel.new(self, text: label).pack
         options = secret ? { show: '*' } : {}
         TkEntry.new(self, options).pack(pady: pady)
     end
 
+    # adds a red error label
     def error_label
         TkLabel.new(self, foreground: 'red').pack(pady: 5)
     end
 
-    # The block is created here, so `self` inside it is the view, not the button.
+    # adds a button that runs the given block
     def button(text, &action)
         TkButton.new(self, text: text, command: action).pack(pady: 5)
     end
 
+    # removes all widgets from the screen
     def clear_frame
         TkWinfo.children(self).each(&:destroy)
     end
 
-    #handlers
+    # handlers
 
+    # logs in and opens the right dashboard
     def handle_login
         if @app.authenticate(@username_entry.value.strip, @password_entry.value)
             @app.switch_to(@app.admin? ? AdminDashboardView : UserDashboardView)
@@ -94,6 +102,7 @@ class LoginRegisterView < TkFrame
         end
     end
 
+    # submits the registration form
     def handle_registration
         values = @reg.to_h { |key, entry| [key, key == :password ? entry.value : entry.value.strip] }
 

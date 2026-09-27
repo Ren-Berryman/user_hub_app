@@ -6,12 +6,14 @@ class UserDashboardView < TkFrame
     SUB_FONT     = 'Helvetica 10 bold'.freeze
     NO_SELECTION = 'Select a post above to manage attachments.'.freeze
 
+    # [key, label] — keys match AppContext#add_attachment keywords
     ATTACHMENT_FIELDS = [
         [:name, 'File Name:'],
         [:type, 'File Type (e.g. .pdf):'],
         [:size, 'File Size (KB):']
     ].freeze
 
+    # sets up the view for the current user
     def initialize(parent, app)
         super(parent)
         @app  = app
@@ -19,6 +21,7 @@ class UserDashboardView < TkFrame
         build_dashboard
     end
 
+    # builds all dashboard sections
     def build_dashboard
         build_header
         build_post_list
@@ -28,8 +31,9 @@ class UserDashboardView < TkFrame
 
     private
 
-    #layout
+    # layout
 
+    # builds the welcome bar and header buttons
     def build_header
         header = TkFrame.new(self).pack(fill: 'x', pady: 10)
         TkLabel.new(header, text: "Welcome, #{@user[:username]}!", font: HEADER_FONT).pack(side: 'left', padx: 10)
@@ -38,6 +42,7 @@ class UserDashboardView < TkFrame
         TkButton.new(header, text: 'My Profile', command: proc { @app.switch_to(UserProfileView) }).pack(side: 'right', padx: 5)
     end
 
+    # builds the post list and post buttons
     def build_post_list
         TkLabel.new(self, text: 'Your Posts', font: SECTION_FONT).pack(pady: 5)
 
@@ -51,8 +56,9 @@ class UserDashboardView < TkFrame
         TkButton.new(row, text: 'Delete Selected Post', command: proc { delete_selected_post }).pack(side: 'left', padx: 5)
     end
 
+    # builds the attachment list and form
     def build_attachment_section
-        TkLabel.new(self, text: '--- Attachments for Selected Post ---', font: SUB_FONT).pack(pady: 10)
+        TkLabel.new(self, text: 'Attachments for Selected Post', font: SUB_FONT).pack(pady: 10)
         @attach_label = TkLabel.new(self, text: NO_SELECTION).pack
         @attach_listbox = TkListbox.new(self, height: 4, exportselection: false).pack(fill: 'x', padx: 20)
 
@@ -72,28 +78,31 @@ class UserDashboardView < TkFrame
         @status_msg = TkLabel.new(self).pack
     end
 
-    #display
+    # display
 
+    # returns the selected post position
     def selected_index
         @post_listbox.curselection.first
     end
 
+    # returns the selected post
     def selected_post
         idx = selected_index
         idx && @user[:posts][idx]
     end
 
-    #redraws the list and post count (optionally re-selects a row)
+    # redraws the post list and post count
     def refresh_posts(select: nil)
         @post_listbox.clear
-        @user[:posts].each_with_index do |post, idx|
-            @post_listbox.insert('end', "##{idx + 1} | #{post[:title]} - Attachments: #{post[:attachments].length}")
+        @user[:posts].each do |post|
+            @post_listbox.insert('end', "##{post[:id]} | #{post[:title]} - Attachments: #{post[:attachments].length}")
         end
         @post_count_label.text = "Total Posts: #{@user[:posts].length}"
         @post_listbox.selection_set(select) if select
         show_attachments
     end
 
+    # shows attachments for the selected post
     def show_attachments
         post = selected_post
         @attach_listbox.clear
@@ -110,14 +119,15 @@ class UserDashboardView < TkFrame
     end
 end
 
+# shows a green or red status message
 def show_status(msg, ok)
     @status_msg.foreground = ok ? 'dark green' : 'red'
     @status_msg.text = msg
 end
 
-#actions
+# actions
 
-# Shared form for creating a new post or editing an existing one.
+# opens the create or edit post form
 def show_post_form(post_to_edit = nil)
     top = TkToplevel.new(self)
     top.title(post_to_edit ? 'Edit Post' : 'New Post')
@@ -153,6 +163,7 @@ def show_post_form(post_to_edit = nil)
     title_entry.focus
 end
 
+# opens the edit form for the selected post
 def edit_selected_post
     post = selected_post
     return show_status('Please select a post to edit.', false) unless post
@@ -160,6 +171,7 @@ def edit_selected_post
     show_post_form(post)
 end
 
+# deletes the selected post after confirming
 def delete_selected_post
     post = selected_post
     return show_status('Please select a post to delete.', false) unless post
@@ -173,6 +185,7 @@ def delete_selected_post
     show_status('Post deleted.', true)
 end
 
+# adds an attachment to the selected post
 def add_attachment
     idx = selected_index
     return show_status('Please select a post first.', false) unless idx
@@ -186,6 +199,7 @@ def add_attachment
     refresh_posts(select: idx)
 end
 
+# removes the selected attachment
 def remove_attachment
     idx = selected_index
     return show_status('Please select a post first.', false) unless idx

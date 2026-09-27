@@ -1,4 +1,3 @@
-
 require 'tk'
 
 class UserProfileView < TkFrame
@@ -6,8 +5,8 @@ class UserProfileView < TkFrame
     SECTION_FONT = 'Helvetica 12 bold'.freeze
     LABEL_FONT   = 'Helvetica 10 bold'.freeze
 
-    #[section title, [[key, label, entry width], ...]]
-    #keys match AppContext#update_profile keywords.
+    # [section title, [[key, label, entry width], ...]]
+    # Keys match AppContext#update_profile keywords.
     SECTIONS = [
         ['Account Information', [
                                  [:username, 'Username:', 30],
@@ -21,6 +20,7 @@ class UserProfileView < TkFrame
                             ]]
     ].freeze
 
+    # sets up the profile view
     def initialize(parent, app)
         super(parent)
         @app     = app
@@ -32,14 +32,16 @@ class UserProfileView < TkFrame
 
     private
 
-    #layout
+    # layout
 
+    # builds the title bar and back button
     def build_header
         header = TkFrame.new(self).pack(fill: 'x', pady: 10)
         TkLabel.new(header, text: 'User Profile & Address', font: TITLE_FONT).pack(side: 'left', padx: 10)
         TkButton.new(header, text: 'Back to Dashboard', command: proc { go_back }).pack(side: 'right', padx: 10)
     end
 
+    # builds the account and address form
     def build_form
         form = TkFrame.new(self).pack(padx: 20, pady: 10)
         row = 0
@@ -63,7 +65,7 @@ class UserProfileView < TkFrame
         .grid(row: row, column: 1, sticky: 'w', pady: 15)
     end
 
-    #auto fills form with user details
+    # fills the form with the current user info
     def populate_fields
         user = @app.current_user
         return unless user
@@ -72,8 +74,9 @@ class UserProfileView < TkFrame
         @entries.each { |key, entry| entry.value = values[key].to_s }
     end
 
-    #actions
+    # actions
 
+    # saves the profile form
     def save_profile
         values = @entries.transform_values { |entry| entry.value.strip }
         ok, msg = @app.update_profile(**values)
@@ -82,6 +85,7 @@ class UserProfileView < TkFrame
                       title: ok ? 'Success' : 'Validation Error', message: msg)
     end
 
+    # returns to the right dashboard
     def go_back
         @app.switch_to(@app.admin? ? AdminDashboardView : UserDashboardView)
     end

@@ -2,6 +2,9 @@ require 'tk'
 require 'bcrypt'
 require_relative 'helpers/validator'
 
+# ============================================================================
+# DATA MODEL (reference for the report views)
+#
 # User (values of users_hash, keyed by username):
 #   { id: Integer, username:, email:, password: (bcrypt hash), role: :admin | :user,
 #     address: { street:, city:, state:, zip: }, posts: [Post, ...] }
@@ -16,6 +19,7 @@ require_relative 'helpers/validator'
 # Dates are Time objects; format them in the view, e.g.
 #   time.strftime('%m/%d/%Y')          # => "08/01/2026"
 #   Time.now.strftime('%A, %B %-d, %Y') # => "Friday, August 7, 2026"
+# ============================================================================
 
 class AppContext
     WINDOW_TITLE     = 'UserHub Desktop System'.freeze
@@ -26,14 +30,15 @@ class AppContext
 
     attr_reader :root, :users_hash, :all_posts, :current_user
 
+    # sets up the window, data collections and seed data
     def initialize
         @root = TkRoot.new
         @root.title(WINDOW_TITLE)
         @root.geometry(WINDOW_SIZE)
 
         @current_user  = nil
-        @users_hash    = {}  #hash/Map collection for users
-        @all_posts     = []  #array collection for posts
+        @users_hash    = {}  # hash/Map collection for users
+        @all_posts     = []  # array collection for posts
         @current_frame = nil
         @next_user_id  = 1
         @next_post_id  = FIRST_POST_ID
@@ -42,20 +47,23 @@ class AppContext
         seed_sample_data if SEED_SAMPLE_DATA
     end
 
-    #navigation
+    # navigation
 
+    # swaps the current screen for a new one
     def switch_to(view_class)
         @current_frame&.destroy
         @current_frame = view_class.new(@root, self)
         @current_frame.pack(fill: 'both', expand: true)
     end
 
+    # starts the tk event loop
     def run
         Tk.mainloop
     end
 
-    #authentication
+    # authentication
 
+    # checks login credentials and sets the current user
     def authenticate(login, password)
         user = find_user(login)
         return false unless user && BCrypt::Password.new(user[:password]) == password
@@ -64,21 +72,25 @@ class AppContext
         true
     end
 
+    # checks if a user is logged in
     def logged_in?
         !@current_user.nil?
     end
 
+    # checks if the current user is an admin
     def admin?
         @current_user&.dig(:role) == :admin
     end
 
+    # clears the current user and returns to login
     def logout
         @current_user = nil
         switch_to(LoginRegisterView)
     end
 
-    #user manegment
+    # user management
 
+    # validates and saves a new user
     def register_user(username:, email:, password:, street:, city:, state:, zip:)
         valid, msg = Validator.validate_user(username, email, password)
         valid, msg = Validator.validate_address(street, city, state, zip) if valid
@@ -98,7 +110,7 @@ class AppContext
         [true, 'Registration successful. Please log in.']
     end
 
-    #updates user info
+    # updates user info
     def update_profile(username:, email:, street:, city:, state:, zip:)
         user = @current_user
         return [false, 'You must be logged in to update your profile.'] unless user
@@ -106,6 +118,7 @@ class AppContext
         valid, msg = Validator.validate_profile(username, email, street, city, state, zip)
         return [false, msg] unless valid
 
+        # Don't allow taking another user's username or email
         other = @users_hash[username]
         return [false, 'Username already taken.'] if other && !other.equal?(user)
         other = find_user(email)
@@ -117,6 +130,7 @@ class AppContext
         [true, 'Profile updated successfully!']
     end
 
+    # finds a user by username or email
     def find_user(login)
         return nil if login.to_s.strip.empty?
 
@@ -124,16 +138,19 @@ class AppContext
                 @users_hash.values.find { |u| u[:email].to_s.casecmp?(login) }
     end
 
+    # finds a user by user id
     def find_user_by_id(id)
         @users_hash.values.find { |u| u[:id] == id.to_i }
     end
 
+    # returns all non-admin users sorted by id
     def regular_users
         @users_hash.values.reject { |u| u[:role] == :admin }.sort_by { |u| u[:id] }
     end
 
-    #reports
+    # reports
 
+    # returns user, post and attachment totals
     def stats
         {
             users:       regular_users.length,
@@ -142,12 +159,14 @@ class AppContext
         }
     end
 
+    # counts attachments across posts
     def total_attachments(posts = @all_posts)
         posts.sum { |p| p[:attachments].length }
     end
 
-    #Posts and attachments
+    # posts & attachments
 
+    # validates and saves a new post
     def create_post(title, content)
         valid, msg = Validator.validate_post(title, content)
         return [false, msg] unless valid
@@ -156,14 +175,13 @@ class AppContext
         [true, 'Post created.']
     end
 
-    #removes this exact post object from its author and from all_posts.
-    #(equal? compares identity, so two posts with the same text aren't both deleted.)
-    #works for admins deleting other users' posts too.
+    # removes a post from its author and all posts
     def delete_post(post)
         @users_hash.dig(post[:author], :posts)&.reject! { |p| p.equal?(post) }
         @all_posts.reject! { |p| p.equal?(post) }
     end
 
+    # validates and adds an attachment to a post
     def add_attachment(post, name:, type:, size:)
         valid, msg = Validator.validate_attachment(name, type, size, post[:attachments].length)
         return [false, msg] unless valid
@@ -173,6 +191,7 @@ class AppContext
         [true, 'Attachment added successfully!']
     end
 
+    # removes an attachment from a post
     def remove_attachment(post, index)
         removed = post[:attachments].delete_at(index)
         return [false, 'Attachment not found.'] unless removed
@@ -181,7 +200,7 @@ class AppContext
         [true, "Removed attachment \"#{removed[:name]}\"."]
     end
 
-    #updates post and title after validation
+    # validates and updates a post title and content
     def update_post(post, title, content)
         valid, msg = Validator.validate_post(title, content)
         return [false, msg] unless valid
@@ -194,9 +213,9 @@ class AppContext
 
     private
 
-    #record builder
+    # record builders
 
-    #defines what a user record looks like.
+    # builds a new user record
     def build_user(id:, username:, email:, password:, role:, address: nil)
         {
             id:       id,
@@ -209,7 +228,7 @@ class AppContext
         }
     end
 
-    #creates a post and adds it to both collections.
+    # builds a new post and adds it to both collections
     def add_post(user, title, content, created_at: Time.now)
         post = {
             id:          take_post_id,
@@ -225,6 +244,7 @@ class AppContext
         post
     end
 
+    # changes a username and updates its posts
     def rename_user(user, new_name)
         @users_hash.delete(user[:username])
         user[:posts].each { |post| post[:author] = new_name }
@@ -232,28 +252,31 @@ class AppContext
         @users_hash[new_name] = user
     end
 
-    #marks a post as updated now
+    # sets a post updated date to now
     def touch(post)
         post[:updated_at] = Time.now
     end
 
+    # returns the next user id
     def take_user_id
         id = @next_user_id
         @next_user_id += 1
         id
     end
 
+    # returns the next post id
     def take_post_id
         id = @next_post_id
         @next_post_id += 1
         id
     end
 
-    #seed data
+    # seed data
 
+    # creates the admin account
     def seed_admin
         name = ENV.fetch('ADMIN_USERNAME', 'admin')
-        #default makes the app runnable for grading; set ADMIN_PASSWORD to override.
+        # Default makes the app runnable for grading; set ADMIN_PASSWORD to override.
         pass = ENV.fetch('ADMIN_PASSWORD', 'admin123')
         warn "[UserHub] Using default admin password. Set ADMIN_PASSWORD to change it." unless ENV.key?('ADMIN_PASSWORD')
 
@@ -266,8 +289,7 @@ class AppContext
             )
     end
 
-    #demo users/posts so the reports have data during testing and grading
-    #all sample users log in with password: password1
+    # creates demo users and posts for testing
     def seed_sample_data
         register_user(username: 'john_smith', email: 'john@email.com', password: 'password1',
                       street: '123 Main St', city: 'Columbus', state: 'Ohio',    zip: '43215')
@@ -292,6 +314,7 @@ class AppContext
                   days_ago: 1)
     end
 
+    # creates a demo post with dates and attachments
     def seed_post(user, title, content, days_ago:, edited_days_ago: days_ago, attachments: [])
         post = add_post(user, title, content, created_at: Time.now - days_ago * DAY)
         post[:updated_at] = Time.now - edited_days_ago * DAY

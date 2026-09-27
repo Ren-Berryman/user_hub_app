@@ -1,21 +1,14 @@
 module Validator
     EMAIL_PATTERN = /\A[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\z/
 
-# Username + Email checks (shared by registration and profile updates)
+# checks username and email
 def self.validate_account(username, email)
     return [false, "Username must be at least 3 characters."] if username.nil? || username.strip.length < 3
     return [false, "Invalid email format (e.g., user@email.com)."] if email.nil? || !(email =~ EMAIL_PATTERN)
     [true, "Valid"]
 end
-#user Input Validation
-def self.validate_user(username, email, password)
-    return [false, "Username must be at least 3 characters."] if username.nil? || username.strip.length < 3
-    return [false, "Invalid email format (e.g., user@email.com)."] if email.nil? || !(email =~ EMAIL_PATTERN)
-    return [false, "Password must be at least 6 characters."] if password.nil? || password.length < 6
-    [true, "Valid"]
-end
 
-# User Input Validation (registration)
+# checks registration username, email and password
 def self.validate_user(username, email, password)
     valid, msg = validate_account(username, email)
     return [valid, msg] unless valid
@@ -23,14 +16,14 @@ def self.validate_user(username, email, password)
     [true, "Valid"]
 end
 
-# Profile Update Validation (no password on the profile form)
+# checks profile username, email and address
 def self.validate_profile(username, email, street, city, state, zip_code)
     valid, msg = validate_account(username, email)
     return [valid, msg] unless valid
     validate_address(street, city, state, zip_code)
 end
 
-#address Input Validation
+# checks all address fields are filled in
 def self.validate_address(street, city, state, zip_code)
     if [street, city, state, zip_code].any? { |field| field.nil? || field.strip.empty? }
         return [false, "All address fields (Street, City, State, Zip) are required."]
@@ -38,14 +31,14 @@ def self.validate_address(street, city, state, zip_code)
     [true, "Valid"]
 end
 
-#post Input Validation
+# checks post title and content are filled in
 def self.validate_post(title, content)
     return [false, "Post title is required."] if title.nil? || title.strip.empty?
     return [false, "Post content is required."] if content.nil? || content.strip.empty?
     [true, "Valid"]
 end
 
-#attachment Input Validation
+# checks attachment limit, name, type and size
 def self.validate_attachment(file_name, file_type, file_size, current_attachment_count)
     if current_attachment_count >= 5
         return [false, "Maximum limit of 5 attachments per post reached."]
