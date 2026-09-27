@@ -109,6 +109,35 @@ class AppContext
         @users_hash.values.find { |u| u[:id] == id.to_i }
     end
 
+    # allows user manager to delete user profile
+    def delete_user(user)
+    return [false, 'Cannot delete an admin account.'] if user[:role] == :admin
+
+    removed_post_count = user[:posts].length
+    @all_posts.reject! { |p| p[:author] == user[:username] }
+    @users_hash.delete(user[:username])
+    [true, "Deleted \"#{user[:username]}\" and #{removed_post_count} post(s)."]
+    end
+
+    #updates user information using email, users is all users in userhub
+    def update_user(user, email:, street:, city:, state:, zip:, password: nil)
+        return [false, 'Cannot edit an admin account.'] if user[:role] == :admin
+
+        valid, msg = Validator.validate_address(street, city, state, zip)
+        return [false, msg] unless valid
+
+        if email != user[:email]
+            return [false, 'Email already registered.'] if find_user(email)
+
+            user[:email] = email
+        end
+
+        user[:address].merge!(street: street, city: city, state: state, zip: zip)
+        user[:password] = BCrypt::Password.create(password) unless password.to_s.empty?
+
+        [true, 'User updated.'] #prints that user info has been updated
+    end
+
     def regular_users
         @users_hash.values.reject { |u| u[:role] == :admin }.sort_by { |u| u[:id] }
     end
@@ -144,6 +173,17 @@ class AppContext
         @users_hash.dig(post[:author], :posts)&.reject! { |p| p.equal?(post) }
         @all_posts.reject! { |p| p.equal?(post) }
     end
+
+    #updates information in user's post
+    def update_post(post){
+        valid, msg = Validator.validate_post(title, content) # calls to validate post
+        return [false, msg] unless valid
+        #if valid, post can be updated with title and content
+        post[:title]   = title
+        post[:content] = content
+        touch(post)
+        [true, 'Post updated.']
+    }
 
     def add_attachment(post, name:, type:, size:)
         valid, msg = Validator.validate_attachment(name, type, size, post[:attachments].length)
