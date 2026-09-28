@@ -4,6 +4,8 @@ class UserProfileView < TkFrame
     TITLE_FONT   = 'Helvetica 16 bold'.freeze
     SECTION_FONT = 'Helvetica 12 bold'.freeze
     LABEL_FONT   = 'Helvetica 10 bold'.freeze
+    PICTURE_SIZE = 120   # longest side of the displayed picture, in pixels
+    NO_PICTURE   = '(no picture)'.freeze
 
     # [section title, [[key, label, entry width], ...]]
     # Keys match AppContext#update_profile keywords.
@@ -26,8 +28,10 @@ class UserProfileView < TkFrame
         @app     = app
         @entries = {}
         build_header
+        build_picture_area   # creates @picture_label
         build_form
         populate_fields
+        show_picture
     end
 
     private
@@ -39,6 +43,18 @@ class UserProfileView < TkFrame
         header = TkFrame.new(self).pack(fill: 'x', pady: 10)
         TkLabel.new(header, text: 'User Profile & Address', font: TITLE_FONT).pack(side: 'left', padx: 10)
         TkButton.new(header, text: 'Back to Dashboard', command: proc { go_back }).pack(side: 'right', padx: 10)
+    end
+
+    # builds the profile picture box and its buttons
+    def build_picture_area
+        TkLabel.new(self, text: 'Profile Picture', font: SECTION_FONT).pack(pady: 5)
+ 
+        @picture_label = TkLabel.new(self, text: NO_PICTURE, relief: 'groove', padx: 10, pady: 10)
+        @picture_label.pack(pady: 5)
+ 
+        row = TkFrame.new(self).pack(pady: 5)
+        TkButton.new(row, text: 'Choose Picture...', command: proc { choose_picture }).pack(side: 'left', padx: 5)
+        TkButton.new(row, text: 'Remove Picture',    command: proc { remove_picture }).pack(side: 'left', padx: 5)
     end
 
     # builds the account and address form
@@ -74,8 +90,54 @@ class UserProfileView < TkFrame
         @entries.each { |key, entry| entry.value = values[key].to_s }
     end
 
+    # profile picture
+ 
+    # shows the saved picture, or the placeholder text if there isn't one
+    def show_picture
+        user = @app.current_user
+        path = user && user[:profile_picture]
+ 
+        if path && File.file?(path)
+            @photo = load_photo(path)   # keep a reference so Tk doesn't lose the image
+            @picture_label.configure(image: @photo, text: '')
+        else
+            @photo = nil
+            @picture_label.configure(image: '', text: NO_PICTURE)
+        end
+    end
+ 
+    # loads the image and shrinks it (by whole-number factors) to fit PICTURE_SIZE
+    def load_photo(path)
+        original = TkPhotoImage.new(file: path)
+        scale = [original.width, original.height].max.fdiv(PICTURE_SIZE).ceil
+        return original if scale <= 1
+ 
+        small = TkPhotoImage.new
+        small.copy(original, '-subsample', scale, scale)
+        small
+    end
+ 
     # actions
 
+    # picks an image file and saves it as the profile picture
+    def choose_picture
+        path = Tk.getOpenFile
+        return if path.to_s.empty?
+ 
+        ok, msg = @app.set_profile_picture(@app.current_user, path)
+        if ok
+            show_picture
+        else
+            Tk.messageBox(type: 'ok', icon: 'error', title: 'Invalid Picture', message: msg)
+        end
+    end
+ 
+    # clears the profile picture
+    def remove_picture
+        @app.remove_profile_picture(@app.current_user)
+        show_picture
+    end
+ 
     # saves the profile form
     def save_profile
         values = @entries.transform_values { |entry| entry.value.strip }

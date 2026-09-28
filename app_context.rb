@@ -179,7 +179,20 @@ class AppContext
         @users_hash.values.reject { |u| u[:role] == :admin }.sort_by { |u| u[:id] }
     end
 
-    # reports
+    # SETS USER PROFILE PHOTO WITH A PATH TO PHOTO
+    def set_profile_picture(user, path)
+        valid, msg = Validator.validate_picture(path)
+        return [false, msg] unless valid
+
+        user[:profile_picture] = path
+        [true, 'Profile picture updated.']
+    end
+
+    # REMOVES PROFILE PICTURE FROM USER PROFILE
+    def remove_profile_picture(user)
+        user[:profile_picture] = nil
+    end
+    #reports
 
     # returns user, post and attachment totals
     def stats
@@ -271,6 +284,7 @@ class AppContext
             password: BCrypt::Password.create(password),
             role:     role,
             address:  address || { street: '', city: '', state: '', zip: '' },
+            profile_picture: nil,
             posts:    []
         }
     end
