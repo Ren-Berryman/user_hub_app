@@ -22,6 +22,7 @@ class AdminDashboardView < TkFrame
         build_header
         build_stats
         build_recent_activity
+        build_manage_users
         build_report_area
         show_report(:master)
     end
@@ -74,6 +75,37 @@ class AdminDashboardView < TkFrame
         posts.map do |p|
             "##{p[:id]}  #{truncate(p[:title], 20)}  #{truncate(p[:author], 12)}  #{p[:created_at].strftime('%m/%d/%Y')}"
         end
+    end
+
+    # builds the user list with a delete button
+    def build_manage_users
+        TkLabel.new(self, text: 'Manage Users', font: SECTION_FONT).pack(pady: 5)
+
+        @users = @app.regular_users
+        @user_listbox = TkListbox.new(self, height: 5, width: 70, exportselection: false)
+        @user_listbox.pack(pady: 5)
+        @users.each do |u|
+            @user_listbox.insert('end', "##{u[:id]}  #{u[:username]}  <#{u[:email]}>  (#{u[:posts].length} posts)")
+        end
+
+        TkButton.new(self, text: 'Delete Selected User', command: proc { delete_selected_user }).pack(pady: 5)
+    end
+
+    # deletes the chosen user after confirmation, then rebuilds the dashboard
+    def delete_selected_user
+        idx = @user_listbox.curselection.first
+        unless idx
+            return Tk.messageBox(type: 'ok', icon: 'error', title: 'Delete User', message: 'Please select a user first.')
+        end
+
+        user = @users[idx]
+        answer = Tk.messageBox(type: 'yesno', icon: 'warning', title: 'Delete User',
+                               message: "Delete \"#{user[:username]}\" and all their posts?")
+        return unless answer == 'yes'
+
+        ok, msg = @app.delete_user(user)
+        Tk.messageBox(type: 'ok', icon: ok ? 'info' : 'error', title: ok ? 'User Deleted' : 'Error', message: msg)
+        @app.switch_to(AdminDashboardView) if ok
     end
 
     def build_report_area

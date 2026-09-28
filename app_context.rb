@@ -111,15 +111,16 @@ class AppContext
         @users_hash.values.find { |u| u[:id] == id.to_i }
     end
 
-    # allows user manager and user to delete user profile
+    # deletes a user and their posts; admins can delete any user, users can delete themselves
     def delete_user(user)
-    return [false, 'Cannot delete an admin account.'] if user[:role] == :admin
+        return [false, 'Cannot delete an admin account.'] if user[:role] == :admin
+        return [false, 'Not authorized.'] unless admin? || user.equal?(@current_user)
 
-    removed_post_count = user[:posts].length
-    @all_posts.reject! { |p| p[:author] == user[:username] }
-    @users_hash.delete(user[:username])
-    @deleted_account_count += 1
-    [true, "Deleted \"#{user[:username]}\" and #{removed_post_count} post(s)."]
+        removed_post_count = user[:posts].length
+        @all_posts.reject! { |p| p[:author] == user[:username] }
+        @users_hash.delete(user[:username])
+        @deleted_account_count += 1
+        [true, "Deleted \"#{user[:username]}\" and #{removed_post_count} post(s)."]
     end
 
     #updates user information using email, users is all users in userhub
