@@ -21,6 +21,7 @@ class AdminDashboardView < TkFrame
     def build_admin_ui
         build_header
         build_stats
+        build_recent_activity
         build_report_area
         show_report(:master)
     end
@@ -39,6 +40,40 @@ class AdminDashboardView < TkFrame
         s = @app.stats
         TkLabel.new(self, text: "Total Users: #{s[:users]}  |  Total Posts: #{s[:posts]}  |  " \
                     "Total Attachments: #{s[:attachments]}").pack(pady: 5)
+                    "Total Deleted Accounts: #{s[:deleted_accounts]}").pack(pady: 5)
+    end
+
+    # builds the recently registered users and recently created posts panels
+    def build_recent_activity
+        row = TkFrame.new(self).pack(fill: 'x', padx: 10, pady: 5)
+        recent_panel(row, 'Recently Registered Users', recent_user_lines)
+        recent_panel(row, 'Recently Created Posts',    recent_post_lines)
+    end
+
+    # builds one titled box with left-aligned lines of text
+    def recent_panel(parent, heading, lines)
+        box = TkFrame.new(parent, relief: 'groove', borderwidth: 2)
+        box.pack(side: 'left', fill: 'both', expand: true, padx: 5)
+        TkLabel.new(box, text: heading, font: SECTION_FONT).pack(pady: 3)
+        TkLabel.new(box, text: lines.join("\n"), justify: 'left', anchor: 'w').pack(fill: 'x', padx: 8, pady: 3)
+    end
+
+    # text lines for the newest users
+    def recent_user_lines
+        users = @app.recent_users
+        return [NO_DATA] if users.empty?
+
+        users.map { |u| "##{u[:id]}  #{truncate(u[:username], 15)}  #{truncate(u[:email], 25)}" }
+    end
+
+    # text lines for the newest posts
+    def recent_post_lines
+        posts = @app.recent_posts
+        return [NO_DATA] if posts.empty?
+
+        posts.map do |p|
+            "##{p[:id]}  #{truncate(p[:title], 20)}  #{truncate(p[:author], 12)}  #{p[:created_at].strftime('%m/%d/%Y')}"
+        end
     end
 
     def build_report_area

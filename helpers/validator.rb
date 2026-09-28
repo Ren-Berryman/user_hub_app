@@ -36,11 +36,11 @@ def self.validate_attachment(file_name, file_type, file_size, file_path, current
     return [false, "File path not found."] if file_path.nil? || file_path.strip.empty?
 end
 
-PICTURE_TYPES = %w[.png .jpg].freeze
+PICTURE_TYPES = %w[.png ].freeze
 
 def self.validate_picture(path)
     return [false, 'Please choose an image file.'] if path.nil? || path.strip.empty?
-    return [false, 'Picture must be a .png or .jpg file.'] unless PICTURE_TYPES.include?(File.extname(path).downcase)
+    return [false, 'Picture must be a .png file.'] unless PICTURE_TYPES.include?(File.extname(path).downcase)
     return [false, 'File not found.'] unless File.file?(path)
 
     [true, 'Valid']

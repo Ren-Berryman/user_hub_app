@@ -23,6 +23,7 @@ class AppContext
     FIRST_POST_ID    = 101
     SEED_SAMPLE_DATA = true   # set to false to start with no demo users/posts
     DAY              = 24 * 60 * 60
+    RECENT_LIMIT = 5   # how many rows the dashboard's "recent" lists show
 
     attr_reader :root, :users_hash, :all_posts, :current_user, :deleted_account_count
 
@@ -110,7 +111,7 @@ class AppContext
         @users_hash.values.find { |u| u[:id] == id.to_i }
     end
 
-    # allows user manager to delete user profile
+    # allows user manager and user to delete user profile
     def delete_user(user)
     return [false, 'Cannot delete an admin account.'] if user[:role] == :admin
 
@@ -165,6 +166,7 @@ class AppContext
             users:       regular_users.length,
             posts:       @all_posts.length,
             attachments: total_attachments
+            deleted_accounts: total_deleted_accounts
         }
     end
 
@@ -175,6 +177,16 @@ class AppContext
     # returns total # of accounts deleted in userhub
     def total_deleted_accounts()
         @deleted_account_count
+    end
+
+    #newest registrations first (ids go up with each registration)
+    def recent_users(limit = RECENT_LIMIT)
+    regular_users.last(limit).reverse
+    end
+
+    #newest posts first; id breaks ties when two posts share a timestamp
+    def recent_posts(limit = RECENT_LIMIT)
+    @all_posts.sort_by { |p| [p[:created_at], p[:id]] }.last(limit).reverse
     end
 
     #Posts and attachments
