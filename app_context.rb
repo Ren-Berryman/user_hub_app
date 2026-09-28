@@ -230,6 +230,7 @@ class AppContext
 
     def add_attachment(post, name:, type:, size:, path:)
         valid, msg = Validator.validate_attachment(name, type, size, path, post[:attachments].length)
+    end
     # validates and adds an attachment to a post
     def add_attachment(post, name:, type:, size:)
         valid, msg = Validator.validate_attachment(name, type, size, post[:attachments].length)

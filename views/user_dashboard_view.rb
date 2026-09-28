@@ -53,7 +53,6 @@ class UserDashboardView < TkFrame
         row = TkFrame.new(self).pack(pady: 5)
         TkButton.new(row, text: 'Create New Post',      command: proc { show_post_form }).pack(side: 'left', padx: 5)
         TkButton.new(row, text: 'Edit Selected Post',   command: proc { edit_selected_post }).pack(side: 'left', padx: 5)
-        TkButton.new(row, text: 'Edit Selected Post',   command: proc { edit_selected_post }).pack(side: 'left', padx: 5)
         TkButton.new(row, text: 'Delete Selected Post', command: proc { delete_selected_post }).pack(side: 'left', padx: 5)
     end
 
