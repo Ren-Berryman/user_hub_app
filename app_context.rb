@@ -160,13 +160,14 @@ class AppContext
     def remove_profile_picture(user)
         user[:profile_picture] = nil
     end
+    
     #reports
 
     def stats
         {
             users:       regular_users.length,
             posts:       @all_posts.length,
-            attachments: total_attachments
+            attachments: total_attachments,
             deleted_accounts: total_deleted_accounts
         }
     end

@@ -38,10 +38,10 @@ class AdminDashboardView < TkFrame
     end
 
     def build_stats
-        s = @app.stats
-        TkLabel.new(self, text: "Total Users: #{s[:users]}  |  Total Posts: #{s[:posts]}  |  " \
-                    "Total Attachments: #{s[:attachments]}").pack(pady: 5)
-                    "Total Deleted Accounts: #{s[:deleted_accounts]}").pack(pady: 5)
+    s = @app.stats
+    TkLabel.new(self, text: "Total Users: #{s[:users]}  |  Total Posts: #{s[:posts]}  |  " \
+                "Total Attachments: #{s[:attachments]}  |  " \
+                "Total Deleted Accounts: #{s[:deleted_accounts]}").pack(pady: 5)
     end
 
     # builds the recently registered users and recently created posts panels
@@ -190,7 +190,26 @@ end
 #   Footer: "Total Number of Attachments: #{@app.total_attachments}"
 #   Return the whole report as one string, like master_report.
 def post_report
-    " POST REPORT \n(not built yet)"
+    posts = @app.all_posts
+    rule  = '-' * 85
+    lines = ['POST REPORT',
+             format(POST_ROW, 'Post ID', 'Title', 'Created', 'Updated', 'Attachments', '#'),
+             rule]
+
+    posts.each do |post|
+        names = post[:attachments].map { |a| a[:name] }.join(', ')
+        names = '-' if names.empty?
+
+        lines << format(POST_ROW, post[:id], truncate(post[:title], 20),
+                        post[:created_at].strftime('%m/%d/%Y'),
+                        post[:updated_at].strftime('%m/%d/%Y'),
+                        truncate(names, 30), post[:attachments].length)
+    end
+
+    lines << NO_DATA if posts.empty?
+    lines << rule
+    lines << "Total Number of Attachments: #{@app.total_attachments}"
+    lines.join("\n")
 end
 
 #Keeps long values from breaking the column layout.
