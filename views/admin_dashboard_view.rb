@@ -8,9 +8,9 @@ class AdminDashboardView < TkFrame
 
     # Column layouts for the reports (printf-style)
     MASTER_ROW   = '%-4s %-15s %-30s %6s'.freeze
+    POST_ROW     = '%-7s %-20s %-10s %-10s %-30s %3s'.freeze
     # TODO (reports): add row formats for the new reports here, e.g.
     #   DETAIL_POST_ROW = '...'.freeze
-    #   POST_ROW        = '...'.freeze
 
     # sets up the admin view
     def initialize(parent, app)
@@ -135,7 +135,26 @@ end
 #   Return the whole report as one string, like master_report.
 # builds the post report text
 def post_report
-    "=== POST REPORT ===\n(not built yet)"
+    posts = @app.all_posts
+    rule  = '-' * 85
+    lines = ['POST REPORT',
+             format(POST_ROW, 'Post ID', 'Title', 'Created', 'Updated', 'Attachments', '#'),
+             rule]
+
+    posts.each do |post|
+        names = post[:attachments].map { |a| a[:name] }.join(', ')
+        names = '-' if names.empty?
+
+        lines << format(POST_ROW, post[:id], truncate(post[:title], 20),
+                        post[:created_at].strftime('%m/%d/%Y'),
+                        post[:updated_at].strftime('%m/%d/%Y'),
+                        truncate(names, 30), post[:attachments].length)
+    end
+
+    lines << NO_DATA if posts.empty?
+    lines << rule
+    lines << "Total Number of Attachments: #{@app.total_attachments}"
+    lines.join("\n")
 end
 
 # shortens long text to fit a column
