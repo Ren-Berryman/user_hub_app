@@ -228,12 +228,9 @@ class AppContext
         [true, 'Post updated.']
     end
 
+    # validates and adds an attachment to a post
     def add_attachment(post, name:, type:, size:, path:)
         valid, msg = Validator.validate_attachment(name, type, size, path, post[:attachments].length)
-    end
-    # validates and adds an attachment to a post
-    def add_attachment(post, name:, type:, size:)
-        valid, msg = Validator.validate_attachment(name, type, size, post[:attachments].length)
         return [false, msg] unless valid
 
         post[:attachments] << { name: name, type: type, size: size.to_i, path: path }
@@ -369,7 +366,7 @@ class AppContext
         post = add_post(user, title, content, created_at: Time.now - days_ago * DAY)
         post[:updated_at] = Time.now - edited_days_ago * DAY
         attachments.each do |name, size|
-            post[:attachments] << { name: name, type: File.extname(name), size: size }
+           post[:attachments] << { name: name, type: File.extname(name), size: size, path: "/uploads/#{name}" }
         end
     end
 end

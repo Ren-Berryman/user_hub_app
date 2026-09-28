@@ -39,14 +39,14 @@ def self.validate_post(title, content)
 end
 
 # checks attachment limit, name, type and size
-def self.validate_attachment(file_name, file_type, file_size, current_attachment_count)
+def self.validate_attachment(file_name, file_type, file_size, file_path, current_attachment_count)
     if current_attachment_count >= 5
         return [false, "Maximum limit of 5 attachments per post reached."]
     end
     return [false, "File name is required."] if file_name.nil? || file_name.strip.empty?
     return [false, "File type is required."] if file_type.nil? || file_type.strip.empty?
     return [false, "File size must be greater than 0 KB."] if file_size.nil? || file_size.to_i <= 0
-    [true, "Valid"]
     return [false, "File path not found."] if file_path.nil? || file_path.strip.empty?
+    [true, "Valid"]
 end
 end

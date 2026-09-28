@@ -10,7 +10,8 @@ class UserDashboardView < TkFrame
     ATTACHMENT_FIELDS = [
         [:name, 'File Name:'],
         [:type, 'File Type (e.g. .pdf):'],
-        [:size, 'File Size (KB):']
+        [:size, 'File Size (KB):'],
+        [:path, 'File Path:']
     ].freeze
 
     # sets up the view for the current user
@@ -72,6 +73,7 @@ class UserDashboardView < TkFrame
         end
 
         btn_row = TkFrame.new(self).pack(pady: 5)
+        TkButton.new(btn_row, text: 'Browse...', command: proc { browse_file }).pack(side: 'left', padx: 5)
         TkButton.new(btn_row, text: 'Add Attachment',             command: proc { add_attachment }).pack(side: 'left', padx: 5)
         TkButton.new(btn_row, text: 'Remove Selected Attachment', command: proc { remove_attachment }).pack(side: 'left', padx: 5)
 
@@ -191,6 +193,16 @@ def edit_selected_post
     return show_status('Please select a post to edit.', false) unless post
 
     show_post_form(post)
+end
+
+# fills info for attachment from file system
+def browse_file
+    path = Tk.getOpenFile
+    return if path.to_s.empty?
+
+    fill = { name: File.basename(path), type: File.extname(path),
+             size: (File.size(path) / 1024.0).ceil, path: path }
+    fill.each { |key, val| @attach_entries[key].value = val.to_s }
 end
 
 # adds an attachment to the selected post
