@@ -35,6 +35,7 @@ class UserDashboardView < TkFrame
         TkLabel.new(header, text: "Welcome, #{@user[:username]}!", font: HEADER_FONT).pack(side: 'left', padx: 10)
         @post_count_label = TkLabel.new(header).pack(side: 'left', padx: 10)
         TkButton.new(header, text: 'Logout', command: proc { @app.logout }).pack(side: 'right', padx: 10)
+        TkButton.new(header, text: 'My Profile', command: proc { @app.switch_to(UserProfileView) }).pack(side: 'right', padx: 10)    
     end
 
     def build_post_list
