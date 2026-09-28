@@ -53,6 +53,7 @@ class UserDashboardView < TkFrame
         row = TkFrame.new(self).pack(pady: 5)
         TkButton.new(row, text: 'Create New Post',      command: proc { show_post_form }).pack(side: 'left', padx: 5)
         TkButton.new(row, text: 'Edit Selected Post',   command: proc { edit_selected_post }).pack(side: 'left', padx: 5)
+        TkButton.new(row, text: 'Edit Selected Post',   command: proc { edit_selected_post }).pack(side: 'left', padx: 5)
         TkButton.new(row, text: 'Delete Selected Post', command: proc { delete_selected_post }).pack(side: 'left', padx: 5)
     end
 
@@ -183,6 +184,14 @@ def delete_selected_post
     @app.delete_post(post)
     refresh_posts
     show_status('Post deleted.', true)
+end
+
+# edit user-selected post in post list
+def edit_selected_post
+    post = selected_post
+    return show_status('Please select a post to edit.', false) unless post
+
+    show_post_form(post)
 end
 
 # adds an attachment to the selected post

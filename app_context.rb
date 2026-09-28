@@ -14,7 +14,7 @@ require_relative 'helpers/validator'
 #     created_at: Time, updated_at: Time, attachments: [Attachment, ...] }
 #
 # Attachment:
-#   { name:, type:, size: Integer (KB) }
+#   { name:, type:, size: Integer (KB), file_path: Text }
 #
 # Dates are Time objects; format them in the view, e.g.
 #   time.strftime('%m/%d/%Y')          # => "08/01/2026"
@@ -28,7 +28,7 @@ class AppContext
     SEED_SAMPLE_DATA = true   # set to false to start with no demo users/posts
     DAY              = 24 * 60 * 60
 
-    attr_reader :root, :users_hash, :all_posts, :current_user
+    attr_reader :root, :users_hash, :all_posts, :current_user, :deleted_account_count
 
     # sets up the window, data collections and seed data
     def initialize
@@ -42,6 +42,7 @@ class AppContext
         @current_frame = nil
         @next_user_id  = 1
         @next_post_id  = FIRST_POST_ID
+        @deleted_account_count = 0
 
         seed_admin
         seed_sample_data if SEED_SAMPLE_DATA
@@ -143,6 +144,36 @@ class AppContext
         @users_hash.values.find { |u| u[:id] == id.to_i }
     end
 
+    # allows user manager to delete user profile
+    def delete_user(user)
+    return [false, 'Cannot delete an admin account.'] if user[:role] == :admin
+
+    removed_post_count = user[:posts].length
+    @all_posts.reject! { |p| p[:author] == user[:username] }
+    @users_hash.delete(user[:username])
+    @deleted_account_count += 1
+    [true, "Deleted \"#{user[:username]}\" and #{removed_post_count} post(s)."]
+    end
+
+    #updates user information using email, users is all users in userhub
+    def update_user(user, email:, street:, city:, state:, zip:, password: nil)
+        return [false, 'Cannot edit an admin account.'] if user[:role] == :admin
+
+        valid, msg = Validator.validate_address(street, city, state, zip)
+        return [false, msg] unless valid
+
+        if email != user[:email]
+            return [false, 'Email already registered.'] if find_user(email)
+
+            user[:email] = email
+        end
+
+        user[:address].merge!(street: street, city: city, state: state, zip: zip)
+        user[:password] = BCrypt::Password.create(password) unless password.to_s.empty?
+
+        [true, 'User updated.'] #prints that user info has been updated
+    end
+
     # returns all non-admin users sorted by id
     def regular_users
         @users_hash.values.reject { |u| u[:role] == :admin }.sort_by { |u| u[:id] }
@@ -164,6 +195,11 @@ class AppContext
         posts.sum { |p| p[:attachments].length }
     end
 
+    # returns total # of accounts deleted in userhub
+    def total_deleted_accounts()
+        @deleted_account_count
+    end
+
     # posts & attachments
 
     # validates and saves a new post
@@ -181,12 +217,25 @@ class AppContext
         @all_posts.reject! { |p| p.equal?(post) }
     end
 
+    #updates information in user's post
+    def update_post(post)
+        valid, msg = Validator.validate_post(title, content) # calls to validate post
+        return [false, msg] unless valid
+        #if valid, post can be updated with title and content
+        post[:title]   = title
+        post[:content] = content
+        touch(post)
+        [true, 'Post updated.']
+    end
+
+    def add_attachment(post, name:, type:, size:, path:)
+        valid, msg = Validator.validate_attachment(name, type, size, path, post[:attachments].length)
     # validates and adds an attachment to a post
     def add_attachment(post, name:, type:, size:)
         valid, msg = Validator.validate_attachment(name, type, size, post[:attachments].length)
         return [false, msg] unless valid
 
-        post[:attachments] << { name: name, type: type, size: size.to_i }
+        post[:attachments] << { name: name, type: type, size: size.to_i, path: path }
         touch(post)
         [true, 'Attachment added successfully!']
     end

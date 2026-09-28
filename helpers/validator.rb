@@ -47,5 +47,6 @@ def self.validate_attachment(file_name, file_type, file_size, current_attachment
     return [false, "File type is required."] if file_type.nil? || file_type.strip.empty?
     return [false, "File size must be greater than 0 KB."] if file_size.nil? || file_size.to_i <= 0
     [true, "Valid"]
+    return [false, "File path not found."] if file_path.nil? || file_path.strip.empty?
 end
 end
