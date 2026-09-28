@@ -78,7 +78,7 @@ class AppContext
         switch_to(LoginRegisterView)
     end
 
-    #user manegment
+    #user managment
 
     def register_user(username:, email:, password:, street:, city:, state:, zip:)
         valid, msg = Validator.validate_user(username, email, password)
@@ -140,10 +140,24 @@ class AppContext
         [true, 'User updated.'] #prints that user info has been updated
     end
 
+    # identifies users who are not admin
     def regular_users
         @users_hash.values.reject { |u| u[:role] == :admin }.sort_by { |u| u[:id] }
     end
 
+    # SETS USER PROFILE PHOTO WITH A PATH TO PHOTO
+    def set_profile_picture(user, path)
+        valid, msg = Validator.validate_picture(path)
+        return [false, msg] unless valid
+
+        user[:profile_picture] = path
+        [true, 'Profile picture updated.']
+    end
+
+    # REMOVES PROFILE PICTURE FROM USER PROFILE
+    def remove_profile_picture(user)
+        user[:profile_picture] = nil
+    end
     #reports
 
     def stats
@@ -224,6 +238,7 @@ class AppContext
             password: BCrypt::Password.create(password),
             role:     role,
             address:  address || { street: '', city: '', state: '', zip: '' },
+            profile_picture: nil,
             posts:    []
         }
     end
