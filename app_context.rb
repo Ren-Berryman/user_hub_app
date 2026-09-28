@@ -27,6 +27,7 @@ class AppContext
     FIRST_POST_ID    = 101
     SEED_SAMPLE_DATA = true   # set to false to start with no demo users/posts
     DAY              = 24 * 60 * 60
+    RECENT_LIMIT = 5   # how many rows the dashboard's "recent" lists show
 
     attr_reader :root, :users_hash, :all_posts, :current_user, :deleted_account_count
 
@@ -144,15 +145,16 @@ class AppContext
         @users_hash.values.find { |u| u[:id] == id.to_i }
     end
 
-    # allows user manager to delete user profile
+    # deletes a user and their posts; admins can delete any user, users can delete themselves
     def delete_user(user)
-    return [false, 'Cannot delete an admin account.'] if user[:role] == :admin
+        return [false, 'Cannot delete an admin account.'] if user[:role] == :admin
+        return [false, 'Not authorized.'] unless admin? || user.equal?(@current_user)
 
-    removed_post_count = user[:posts].length
-    @all_posts.reject! { |p| p[:author] == user[:username] }
-    @users_hash.delete(user[:username])
-    @deleted_account_count += 1
-    [true, "Deleted \"#{user[:username]}\" and #{removed_post_count} post(s)."]
+        removed_post_count = user[:posts].length
+        @all_posts.reject! { |p| p[:author] == user[:username] }
+        @users_hash.delete(user[:username])
+        @deleted_account_count += 1
+        [true, "Deleted \"#{user[:username]}\" and #{removed_post_count} post(s)."]
     end
 
     #updates user information using email, users is all users in userhub
@@ -192,6 +194,7 @@ class AppContext
     def remove_profile_picture(user)
         user[:profile_picture] = nil
     end
+    
     #reports
 
     # returns user, post and attachment totals
@@ -199,7 +202,8 @@ class AppContext
         {
             users:       regular_users.length,
             posts:       @all_posts.length,
-            attachments: total_attachments
+            attachments: total_attachments,
+            deleted_accounts: total_deleted_accounts
         }
     end
 
@@ -213,7 +217,17 @@ class AppContext
         @deleted_account_count
     end
 
-    # posts & attachments
+    #newest registrations first (ids go up with each registration)
+    def recent_users(limit = RECENT_LIMIT)
+    regular_users.last(limit).reverse
+    end
+
+    #newest posts first; id breaks ties when two posts share a timestamp
+    def recent_posts(limit = RECENT_LIMIT)
+    @all_posts.sort_by { |p| [p[:created_at], p[:id]] }.last(limit).reverse
+    end
+
+    #Posts and attachments
 
     # validates and saves a new post
     def create_post(title, content)

@@ -41,6 +41,7 @@ class UserDashboardView < TkFrame
         @post_count_label = TkLabel.new(header).pack(side: 'left', padx: 10)
         TkButton.new(header, text: 'Logout', command: proc { @app.logout }).pack(side: 'right', padx: 10)
         TkButton.new(header, text: 'My Profile', command: proc { @app.switch_to(UserProfileView) }).pack(side: 'right', padx: 10)    
+        TkButton.new(header, text: 'Delete Account', command: proc { delete_account }).pack(side: 'right', padx: 10)
     end
 
     # builds the post list and post buttons
@@ -165,15 +166,18 @@ def show_post_form(post_to_edit = nil)
     title_entry.focus
 end
 
-# opens the edit form for the selected post
-def edit_selected_post
-    post = selected_post
-    return show_status('Please select a post to edit.', false) unless post
+# deletes the logged-in user's own account after confirmation
+def delete_account
+    answer = Tk.messageBox(type: 'yesno', icon: 'warning', title: 'Delete Account',
+                           message: 'Permanently delete your account and all your posts?')
+    return unless answer == 'yes'
 
-    show_post_form(post)
+    ok, msg = @app.delete_user(@user)
+    Tk.messageBox(type: 'ok', icon: ok ? 'info' : 'error',
+                  title: ok ? 'Account Deleted' : 'Error', message: msg)
+    @app.logout if ok
 end
 
-# deletes the selected post after confirming
 def delete_selected_post
     post = selected_post
     return show_status('Please select a post to delete.', false) unless post

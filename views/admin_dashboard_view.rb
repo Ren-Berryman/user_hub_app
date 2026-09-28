@@ -23,6 +23,8 @@ class AdminDashboardView < TkFrame
     def build_admin_ui
         build_header
         build_stats
+        build_recent_activity
+        build_manage_users
         build_report_area
         show_report(:master)
     end
@@ -40,9 +42,74 @@ class AdminDashboardView < TkFrame
 
     # builds the totals bar
     def build_stats
-        s = @app.stats
-        TkLabel.new(self, text: "Total Users: #{s[:users]}  |  Total Posts: #{s[:posts]}  |  " \
-                    "Total Attachments: #{s[:attachments]}").pack(pady: 5)
+    s = @app.stats
+    TkLabel.new(self, text: "Total Users: #{s[:users]}  |  Total Posts: #{s[:posts]}  |  " \
+                "Total Attachments: #{s[:attachments]}  |  " \
+                "Total Deleted Accounts: #{s[:deleted_accounts]}").pack(pady: 5)
+    end
+
+    # builds the recently registered users and recently created posts panels
+    def build_recent_activity
+        row = TkFrame.new(self).pack(fill: 'x', padx: 10, pady: 5)
+        recent_panel(row, 'Recently Registered Users', recent_user_lines)
+        recent_panel(row, 'Recently Created Posts',    recent_post_lines)
+    end
+
+    # builds one titled box with left-aligned lines of text
+    def recent_panel(parent, heading, lines)
+        box = TkFrame.new(parent, relief: 'groove', borderwidth: 2)
+        box.pack(side: 'left', fill: 'both', expand: true, padx: 5)
+        TkLabel.new(box, text: heading, font: SECTION_FONT).pack(pady: 3)
+        TkLabel.new(box, text: lines.join("\n"), justify: 'left', anchor: 'w').pack(fill: 'x', padx: 8, pady: 3)
+    end
+
+    # text lines for the newest users
+    def recent_user_lines
+        users = @app.recent_users
+        return [NO_DATA] if users.empty?
+
+        users.map { |u| "##{u[:id]}  #{truncate(u[:username], 15)}  #{truncate(u[:email], 25)}" }
+    end
+
+    # text lines for the newest posts
+    def recent_post_lines
+        posts = @app.recent_posts
+        return [NO_DATA] if posts.empty?
+
+        posts.map do |p|
+            "##{p[:id]}  #{truncate(p[:title], 20)}  #{truncate(p[:author], 12)}  #{p[:created_at].strftime('%m/%d/%Y')}"
+        end
+    end
+
+    # builds the user list with a delete button
+    def build_manage_users
+        TkLabel.new(self, text: 'Manage Users', font: SECTION_FONT).pack(pady: 5)
+
+        @users = @app.regular_users
+        @user_listbox = TkListbox.new(self, height: 5, width: 70, exportselection: false)
+        @user_listbox.pack(pady: 5)
+        @users.each do |u|
+            @user_listbox.insert('end', "##{u[:id]}  #{u[:username]}  <#{u[:email]}>  (#{u[:posts].length} posts)")
+        end
+
+        TkButton.new(self, text: 'Delete Selected User', command: proc { delete_selected_user }).pack(pady: 5)
+    end
+
+    # deletes the chosen user after confirmation, then rebuilds the dashboard
+    def delete_selected_user
+        idx = @user_listbox.curselection.first
+        unless idx
+            return Tk.messageBox(type: 'ok', icon: 'error', title: 'Delete User', message: 'Please select a user first.')
+        end
+
+        user = @users[idx]
+        answer = Tk.messageBox(type: 'yesno', icon: 'warning', title: 'Delete User',
+                               message: "Delete \"#{user[:username]}\" and all their posts?")
+        return unless answer == 'yes'
+
+        ok, msg = @app.delete_user(user)
+        Tk.messageBox(type: 'ok', icon: ok ? 'info' : 'error', title: ok ? 'User Deleted' : 'Error', message: msg)
+        @app.switch_to(AdminDashboardView) if ok
     end
 
     # builds the report buttons and report box
